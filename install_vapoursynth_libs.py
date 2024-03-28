@@ -98,7 +98,7 @@ else:
 		
 		print("Local installing binaries")
 		runCmd("cp {0} ../bin".format("VSScript.dll"))
-		runCmd("cp {0} ../bin".format("VapourSynth.dll"))
+		#runCmd("cp {0} ../bin".format("VapourSynth.dll"))
 		
 
 		pydName = "vapoursynth.cp311-win_amd64.pyd"
@@ -110,14 +110,14 @@ else:
 		print("Creating library")
 		
 		runCmd("{0} {1}".format(gendef,"VSScript.dll"))
-		runCmd("{0} {1}".format(gendef,"VapourSynth.dll"))
+		#runCmd("{0} {1}".format(gendef,"VapourSynth.dll"))
 		runCmd(f"{dlltool} -m i386:x86-64 -D VSScript.dll -d VSScript.def -l libvapoursynth-script.a")
-		runCmd(f"{dlltool} -m i386:x86-64 -D VapourSynth.dll -d VapourSynth.def -l libvapoursynth.a")
+		#runCmd(f"{dlltool} -m i386:x86-64 -D VapourSynth.dll -d VapourSynth.def -l libvapoursynth.a")
 		
 		
 		runCmd("mkdir lib")
 		
-		runCmd("mv libvapoursynth.a lib/")
+		#runCmd("mv libvapoursynth.a lib/")
 		runCmd("mv libvapoursynth-script.a lib/")
 		
 		os.chdir("lib")
