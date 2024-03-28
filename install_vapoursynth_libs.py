@@ -93,8 +93,8 @@ else:
 		runCmd("mkdir -p bin")
 		os.chdir("work")
 		print("Downloading")
-		runCmd("wget https://github.com/vapoursynth/vapoursynth/releases/download/{0}/VapourSynth{1}-Portable-{0}.7z".format(ver,arch))
-		runCmd('7z x -aoa "VapourSynth{1}-Portable-{0}.7z"'.format(ver,arch))
+		runCmd("wget https://github.com/vapoursynth/vapoursynth/releases/download/{0}/VapourSynth{1}-Portable-{0}.zip".format(ver,arch))
+		runCmd('7z x -aoa "VapourSynth{1}-Portable-{0}.zip"'.format(ver,arch))
 		
 		print("Local installing binaries")
 		runCmd("cp {0} ../bin".format("VSScript.dll"))
