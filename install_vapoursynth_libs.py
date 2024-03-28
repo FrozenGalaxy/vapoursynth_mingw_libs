@@ -102,7 +102,7 @@ else:
 		
 
 		#pydName = "vapoursynth.cp311-win_amd64.pyd"
-		VSS_PC = VSS_PC.replace("%%PY_VER_DOT%%","3.11").replace("%%PY_VER%%","311")
+		VSS_PC = VSS_PC.replace("%%PY_VER_DOT%%","3.11").replace("%%PY_VER%%","312")
 		
 		#runCmd("cp {0} ../bin".format(pydName))
 		#runCmd("cp {0} ../bin".format("portable.vs"))
