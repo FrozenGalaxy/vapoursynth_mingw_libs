@@ -129,10 +129,10 @@ else:
 		print("Creating pkgconfig")
 		
 		pc_script = VSS_PC.replace('%%PREFIX%%',prefix).replace('%%VERSION%%',ver_suff)
-		pc        = VS_PC.replace('%%PREFIX%%',prefix).replace('%%VERSION%%',ver_suff)
+		#pc        = VS_PC.replace('%%PREFIX%%',prefix).replace('%%VERSION%%',ver_suff)
 		
-		with open("vapoursynth.pc","w") as f:
-			f.write(pc)
+		#with open("vapoursynth.pc","w") as f:
+			#f.write(pc)
 			
 		with open("vapoursynth-script.pc","w") as f:
 			f.write(pc_script)
