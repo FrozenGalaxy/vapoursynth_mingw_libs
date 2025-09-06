@@ -26,8 +26,11 @@ endif
 ifndef VAPOURSYNTH_VERSION
 $(error VAPOURSYNTH_VERSION is not set)
 endif
+ifndef PYVER
+$(error PYVER is not set)
+endif
 
 all:
-	@python install_vapoursynth_libs.py install $(ARCH) $(VAPOURSYNTH_VERSION) $(PREFIX) $(DLLTOOL) $(GENDEF)
+	@python install_vapoursynth_libs.py install $(ARCH) $(VAPOURSYNTH_VERSION) $(PREFIX) $(DLLTOOL) $(GENDEF) $(PYVER)
 uninstall:
-	@python install_vapoursynth_libs.py uninstall $(ARCH) $(VAPOURSYNTH_VERSION) $(PREFIX) $(DLLTOOL) $(GENDEF)
+	@python install_vapoursynth_libs.py uninstall $(ARCH) $(VAPOURSYNTH_VERSION) $(PREFIX) $(DLLTOOL) $(GENDEF) $(PYVER)
