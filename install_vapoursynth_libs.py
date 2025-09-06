@@ -49,7 +49,7 @@ def runCmd(cmd):
         exit(1)
 
 def exitHelp():
-    print("install_vapoursynth_libs.py install/uninstall <64/32> <version> <install_prefix> <dlltool> <gendef> - e.g install_vapoursynth_libs.py 64 R49 /test/cross_compilers/....../ DLLTOOLPATH GENDEFPATH")
+    print("install_vapoursynth_libs.py install/uninstall <64/32> <version> <install_prefix> <dlltool> <gendef> <pyver> - e.g install_vapoursynth_libs.py 64 R49 /test/cross_compilers/....../ DLLTOOLPATH GENDEFPATH 3.13")
     exit(1)
 
 def simplePatch(infile, replacetext, withtext):
@@ -104,7 +104,7 @@ if not is_tool("rsync") or not is_tool("7z"):
     print("Please make sure that p7zip and rsync are installed.")
     exit(1)
 
-if len(sys.argv) != 7:
+if len(sys.argv) != 8:
     exitHelp()
 else:
     if sys.argv[1] == "install":
@@ -114,6 +114,7 @@ else:
         prefix   = sys.argv[4]
         dlltool  = sys.argv[5]
         gendef   = sys.argv[6]
+        pyver   = sys.argv[7]
 
         check_version(ver_suff)
 
@@ -127,7 +128,7 @@ else:
         print("Local installing binaries")
         runCmd("cp {0} ../bin".format("VSScript.dll"))
 
-        VSS_PC = VSS_PC.replace("%%PY_VER_DOT%%", "3.12").replace("%%PY_VER%%", "312")
+        VSS_PC = VSS_PC.replace("%%PY_VER_DOT%%", pyver).replace("%%PY_VER%%", pyver.replace(".",""))
 
         print("Creating library")
 
