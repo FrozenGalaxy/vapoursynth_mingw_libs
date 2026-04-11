@@ -1,194 +1,174 @@
 #!/usr/bin/env python3
 
-import sys
 import os
-import urllib
-import subprocess
+import sys
 import re
 
 _DEBUG = False
 
-def is_tool(name):
-    from distutils.spawn import find_executable
-    return find_executable(name) is not None
-
-VS_PC = """prefix=%%PREFIX%% 
-exec_prefix=${prefix} 
-libdir=${exec_prefix}/lib 
-includedir=${prefix}/include/vapoursynth 
- 
-Name: vapoursynth 
-Description: A frameserver for the 21st century 
-Version: %%VERSION%% 
- 
-Requires.private: zimg 
-Libs: -L${libdir} -lvapoursynth 
-Libs.private: -L${libdir} -lzimg
-Cflags: -I${includedir}"""
-
-VSS_PC = """prefix=%%PREFIX%% 
-exec_prefix=${prefix} 
-libdir=${exec_prefix}/lib 
-includedir=${prefix}/include/vapoursynth 
- 
-Name: vapoursynth-script 
-Description: Library for interfacing VapourSynth with Python 
-Version: %%VERSION%%
- 
-Requires: vapoursynth 
-Requires.private: python-%%PY_VER_DOT%%
-Libs: -L${libdir} -lvapoursynth-script 
-Libs.private: -lpython%%PY_VER%%
-Cflags: -I${includedir}"""
-
-def runCmd(cmd):
+def run(cmd):
     if _DEBUG:
-        print("\n--Running command in '%s': '%s'\n--" % (os.getcwd(), cmd))
+        print(f"\n-- {os.getcwd()} :: {cmd}\n--")
     if os.system(cmd) != 0:
-        print("Failed to execute: " + str(cmd))
-        exit(1)
+        print(f"FAILED: {cmd}")
+        sys.exit(1)
 
-def exitHelp():
-    print("install_vapoursynth_libs.py install/uninstall <64/32> <version> <install_prefix> <dlltool> <gendef> <pyver> - e.g install_vapoursynth_libs.py 64 R49 /test/cross_compilers/....../ DLLTOOLPATH GENDEFPATH 3.13")
-    exit(1)
+def need_args(n):
+    if len(sys.argv) != n:
+        print("usage: script.py <arch:64/32> <version:R74> <prefix> <dlltool> <gendef> <pyver>")
+        sys.exit(1)
 
-def simplePatch(infile, replacetext, withtext):
-    lines = []
-    print("Patching " + infile)
-    with open(infile) as f:
-        for line in f:
-            line = line.replace(replacetext, withtext)
-            lines.append(line)
-    with open(infile, 'w') as f2:
-        for line in lines:
-            f2.write(line)
+VS_PC = """prefix=%%PREFIX%%
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/vapoursynth
 
-def lib_to_a(lib_filename, a_output_name, dlltool):
-    # Extract symbols from the .lib file
-    symbols_txt = "symbols.txt"
-    with open(symbols_txt, "w") as symbols_file:
-        subprocess.run(["llvm-nm", lib_filename], stdout=symbols_file)
+Name: vapoursynth
+Description: A frameserver for the 21st century
+Version: %%VERSION%%
 
-    # Parse symbols and create a .def file
-    def_filename = "temp.def"
-    with open(symbols_txt, "r") as f:
-        lines = f.readlines()
+Requires.private: zimg
+Libs: -L${libdir} -lvapoursynth
+Libs.private: -L${libdir} -lzimg
+Cflags: -I${includedir}
+"""
 
-    exports = []
-    for line in lines:
-        match = re.match(r'^[0-9a-fA-F]+\s+([a-zA-Z_][a-zA-Z0-9_]*)$', line)
-        if match:
-            exports.append(match.group(1))
+VSS_PC = """prefix=%%PREFIX%%
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/vapoursynth
 
-    with open(def_filename, "w") as f:
-        f.write(f"LIBRARY {os.path.splitext(lib_filename)[0]}\n")
-        f.write("EXPORTS\n")
-        for symbol in exports:
-            f.write(f"{symbol}\n")
+Name: vapoursynth-script
+Description: Library for interfacing VapourSynth with Python
+Version: %%VERSION%%
 
-    # Create the .a file using llvm-dlltool
-    subprocess.run([dlltool, "-d", def_filename, "-l", a_output_name])
+Requires: vapoursynth
+Requires.private: python-%%PY_DOT%%
+Libs: -L${libdir} -lvapoursynth-script
+Libs.private: -lpython%%PY%%
+Cflags: -I${includedir}
+"""
 
-    # Clean up temporary files
-    os.remove(symbols_txt)
-    os.remove(def_filename)
+# -----------------------------
 
-    print(f"Created {a_output_name} from {lib_filename}")
+need_args(7)
 
-def check_version(ver_suff):
-    if int(ver_suff) < 58:
-        print("Error: VapourSynth version must be 58 or higher.")
-        exit(1)
+arch     = sys.argv[1]
+ver      = sys.argv[2]       # e.g. R74
+prefix   = sys.argv[3]
+dlltool  = sys.argv[4]
+gendef   = sys.argv[5]
+pyver    = sys.argv[6]       # e.g. 3.12
 
-if not is_tool("rsync") or not is_tool("7z"):
-    print("Please make sure that p7zip and rsync are installed.")
-    exit(1)
+ver_num = ver[1:]            # "74"
+py_nodot = pyver.replace(".", "")
 
-if len(sys.argv) != 8:
-    exitHelp()
-else:
-    if sys.argv[1] == "install":
-        arch     = sys.argv[2]
-        ver      = sys.argv[3]
-        ver_suff = ver[1:]
-        prefix   = sys.argv[4]
-        dlltool  = sys.argv[5]
-        gendef   = sys.argv[6]
-        pyver   = sys.argv[7]
+zip_name = f"VapourSynth{arch}-Portable-{ver}.zip"
+url = f"https://github.com/vapoursynth/vapoursynth/releases/download/{ver}/{zip_name}"
 
-        check_version(ver_suff)
+# -----------------------------
+# workspace
+# -----------------------------
 
-        runCmd("mkdir -p work")
-        runCmd("mkdir -p bin")
-        os.chdir("work")
-        print("Downloading")
-        runCmd("wget https://github.com/vapoursynth/vapoursynth/releases/download/{0}/VapourSynth{1}-Portable-{0}.zip".format(ver, arch))
-        runCmd('7z x -aoa "VapourSynth{1}-Portable-{0}.zip"'.format(ver, arch))
+run("rm -rf work out")
+run("mkdir -p work out")
 
-        print("Local installing binaries")
-        runCmd("cp {0} ../bin".format("VSScript.dll"))
+os.chdir("work")
 
-        VSS_PC = VSS_PC.replace("%%PY_VER_DOT%%", pyver).replace("%%PY_VER%%", pyver.replace(".",""))
+# -----------------------------
+# download + extract
+# -----------------------------
 
-        print("Creating library")
+print("Downloading release...")
+run(f"wget {url}")
 
-        # Convert VapourSynth.lib to libvapoursynth.a
-        lib_to_a("sdk/lib64/VapourSynth.lib", "libvapoursynth.a", dlltool)
+print("Extracting release zip...")
+run(f'7z x -aoa "{zip_name}"')
 
-        # Create libvapoursynth-script.a from VSScript.dll
-        runCmd("{0} {1}".format(gendef, "VSScript.dll"))
-        runCmd(f"{dlltool} -m i386:x86-64 -D VSScript.dll -d VSScript.def -l libvapoursynth-script.a")
+# -----------------------------
+# extract wheel
+# -----------------------------
 
-        runCmd("mkdir lib")
+print("Locating wheel...")
+wheel_dir = "wheel"
+wheels = [f for f in os.listdir(wheel_dir) if f.endswith(".whl")]
 
-        runCmd("mv libvapoursynth.a lib/")
-        runCmd("mv libvapoursynth-script.a lib/")
+if not wheels:
+    print("No wheel found!")
+    sys.exit(1)
 
-        os.chdir("lib")
+wheel = wheels[0]
+print(f"Using wheel: {wheel}")
 
-        runCmd("mkdir pkgconfig")
+run(f'7z x -aoa "wheel/{wheel}" -owheel_extract')
 
-        os.chdir("pkgconfig")
+vs = "wheel_extract/vapoursynth"
 
-        print("Creating pkgconfig")
+# -----------------------------
+# binaries
+# -----------------------------
 
-        pc_script = VSS_PC.replace('%%PREFIX%%', prefix).replace('%%VERSION%%', ver_suff)
-        pc        = VS_PC.replace('%%PREFIX%%', prefix).replace('%%VERSION%%', ver_suff)
+print("Copying DLLs...")
+run(f"mkdir -p ../out/bin")
+run(f"cp {vs}/vsscript.dll ../out/bin/")
+run(f"cp {vs}/libvapoursynth.dll ../out/bin/")
 
-        with open("vapoursynth.pc", "w") as f:
-            f.write(pc)
+# -----------------------------
+# import libs (.a)
+# -----------------------------
 
-        with open("vapoursynth-script.pc", "w") as f:
-            f.write(pc_script)
+print("Generating import libraries...")
 
-        os.chdir("..")
-        os.chdir("..")
+# vapoursynth
+run(f"{gendef} {vs}/libvapoursynth.dll")
+run(f"{dlltool} -m i386:x86-64 -D libvapoursynth.dll -d libvapoursynth.def -l libvapoursynth.a")
 
-        runCmd("mkdir include")
-        os.chdir("include")
+# vsscript
+run(f"{gendef} {vs}/vsscript.dll")
+run(f"{dlltool} -m i386:x86-64 -D vsscript.dll -d vsscript.def -l libvapoursynth-script.a")
 
-        runCmd("wget https://github.com/vapoursynth/vapoursynth/archive/{0}.tar.gz".format(ver))
-        runCmd("tar -xvf {0}.tar.gz vapoursynth-{0}/include".format(ver))
+run("mkdir -p ../out/lib")
+run("mv libvapoursynth.a ../out/lib/")
+run("mv libvapoursynth-script.a ../out/lib/")
 
-        runCmd("mv vapoursynth-{0}/include vapoursynth".format(ver))
-        runCmd("rm -r vapoursynth-{0}".format(ver))
-        runCmd("rm {0}.tar.gz".format(ver))
-        os.chdir("..")
+# -----------------------------
+# headers
+# -----------------------------
 
-        runCmd("mkdir ../work2")
+print("Copying headers...")
+run("mkdir -p ../out/include")
+run(f"cp -r {vs}/include ../out/include/vapoursynth")
 
-        runCmd("mv include ../work2")
-        runCmd("mv lib ../work2")
+# -----------------------------
+# pkg-config
+# -----------------------------
 
-        os.chdir("..")
+print("Generating pkg-config files...")
 
-        print("Installing to " + prefix)
-        runCmd("rsync -aKv work2/ {0}".format(prefix))
+run("mkdir -p ../out/lib/pkgconfig")
 
-        runCmd("rm -r work")
-        runCmd("rm -r work2")
+pc_vs = VS_PC.replace("%%PREFIX%%", prefix).replace("%%VERSION%%", ver_num)
 
-    elif sys.argv[1] == "uninstall":
-        pass
-    else:
-        exitHelp()
+pc_vss = VSS_PC \
+    .replace("%%PREFIX%%", prefix) \
+    .replace("%%VERSION%%", ver_num) \
+    .replace("%%PY_DOT%%", pyver) \
+    .replace("%%PY%%", py_nodot)
+
+with open("../out/lib/pkgconfig/vapoursynth.pc", "w") as f:
+    f.write(pc_vs)
+
+with open("../out/lib/pkgconfig/vapoursynth-script.pc", "w") as f:
+    f.write(pc_vss)
+
+# -----------------------------
+# install
+# -----------------------------
+
+os.chdir("..")
+
+print(f"Installing to {prefix} ...")
+run(f"mkdir -p {prefix}")
+run(f"rsync -a out/ {prefix}/")
+
+print("Done.")
