@@ -4,6 +4,11 @@ import os
 import sys
 import re
 
+if len(sys.argv) > 1 and sys.argv[1] in ("install", "uninstall"):
+    mode = sys.argv.pop(1)
+else:
+    mode = "install"
+
 _DEBUG = False
 
 def run(cmd):
