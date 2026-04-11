@@ -180,6 +180,6 @@ os.chdir("..")
 
 print(f"Installing to {prefix} ...")
 run(f"mkdir -p {prefix}")
-run(f"rsync -a out/ {prefix}/")
+run(f"rsync -a --keep-dirlinks --no-owner --no-group out/ {prefix}/")
 
 print("Done.")
