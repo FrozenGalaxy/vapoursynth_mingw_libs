@@ -95,8 +95,21 @@ run(f'7z x -aoa "{zip_name}"')
 # -----------------------------
 
 print("Locating wheel...")
-wheel_dir = "wheel"
+# find extracted root dir
+roots = [d for d in os.listdir(".") if d.startswith("VapourSynth") and os.path.isdir(d)]
+if not roots:
+    print("Could not find extracted VapourSynth directory")
+    sys.exit(1)
+
+root = roots[0]
+wheel_dir = os.path.join(root, "wheel")
+
+print(f"Using root: {root}")
+
 wheels = [f for f in os.listdir(wheel_dir) if f.endswith(".whl")]
+if not wheels:
+    print("No wheel found!")
+    sys.exit(1)
 
 if not wheels:
     print("No wheel found!")
