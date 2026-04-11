@@ -111,7 +111,6 @@ if not wheel_path:
     sys.exit(1)
 
 print(f"Using wheel: {wheel_path}")
-wheel_path = wheel_path.replace("\\", "/")
 run(f'7z x -aoa "{wheel_path}" -owheel_extract')
 
 vs = "wheel_extract/vapoursynth"
