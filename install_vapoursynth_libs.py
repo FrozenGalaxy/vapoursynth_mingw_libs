@@ -88,37 +88,31 @@ print("Downloading release...")
 run(f"wget {url}")
 
 print("Extracting release zip...")
-run(f'7z x -aoa "{zip_name}"')
+run(f'7z x -aoa -snl "{zip_name}"')
 
 # -----------------------------
 # extract wheel
 # -----------------------------
 
 print("Locating wheel...")
-# find extracted root dir
-roots = [d for d in os.listdir(".") if d.startswith("VapourSynth") and os.path.isdir(d)]
-if not roots:
-    print("Could not find extracted VapourSynth directory")
+
+wheel_path = None
+
+for root, dirs, files in os.walk("."):
+    for f in files:
+        if f.lower().endswith(".whl"):
+            wheel_path = os.path.join(root, f)
+            break
+    if wheel_path:
+        break
+
+if not wheel_path:
+    print("Wheel not found!")
     sys.exit(1)
 
-root = roots[0]
-wheel_dir = os.path.join(root, "wheel")
+print(f"Using wheel: {wheel_path}")
 
-print(f"Using root: {root}")
-
-wheels = [f for f in os.listdir(wheel_dir) if f.endswith(".whl")]
-if not wheels:
-    print("No wheel found!")
-    sys.exit(1)
-
-if not wheels:
-    print("No wheel found!")
-    sys.exit(1)
-
-wheel = wheels[0]
-print(f"Using wheel: {wheel}")
-
-run(f'7z x -aoa "wheel/{wheel}" -owheel_extract')
+run(f'7z x -aoa "{wheel_path}" -owheel_extract')
 
 vs = "wheel_extract/vapoursynth"
 
